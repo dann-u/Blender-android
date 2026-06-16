@@ -24,10 +24,6 @@ jobs:
             python3 python3-pip \
             git subversion \
             build-essential \
-            libx11-dev libxxf86vm-dev \
-            libxcursor-dev libxi-dev \
-            libxrandr-dev libxinerama-dev \
-            libwayland-dev wayland-protocols \
             zip unzip openjdk-17-jdk
 
       - name: Setup Android NDK
@@ -62,8 +58,6 @@ jobs:
           ls lib/android_arm64/
           echo "=== ALL STATIC LIBS ==="
           find lib/android_arm64 -name "*.a" | sort
-          echo "=== ALL INCLUDES ==="
-          find lib/android_arm64 -name "*.h" | grep -i jpeg | head -20
 
       - name: Cache build dependencies
         uses: actions/cache@v4
@@ -71,7 +65,7 @@ jobs:
           path: |
             blender/lib
             lib/android_arm64
-          key: blender-android-libs-v2
+          key: blender-android-libs-v3
 
       - name: Configure CMake
         run: |
@@ -82,16 +76,21 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
             -DANDROID_ABI=arm64-v8a \
             -DANDROID_PLATFORM=android-26 \
-            -DLIBDIR=${{ github.workspace }}/lib/android_arm64 \
+            -DLIBDIR=$GITHUB_WORKSPACE/lib/android_arm64 \
             -DWITH_LIBS_PRECOMPILED=ON \
             -DWITH_VULKAN_BACKEND=ON \
-            -DWITH_OPENGL_ES=ON \
             -DWITH_CYCLES=OFF \
             -DWITH_AUDASPACE=OFF \
             -DWITH_INTERNATIONAL=OFF \
             -DWITH_PYTHON_INSTALL=OFF \
             -DWITH_INSTALL_PORTABLE=ON \
             -DWITH_IMAGE_JPEG=OFF \
+            -DWITH_IMAGE_PNG=OFF \
+            -DWITH_IMAGE_TIFF=OFF \
+            -DWITH_IMAGE_OPENEXR=OFF \
+            -DWITH_IMAGE_OPENJPEG=OFF \
+            -DWITH_IMAGE_WEBP=OFF \
+            -DWITH_OPENGL_ES=ON \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
