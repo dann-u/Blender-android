@@ -56,6 +56,15 @@ jobs:
             https://projects.blender.org/epai/lib-android_arm64.git \
             lib/android_arm64
 
+      - name: Inspect lib contents
+        run: |
+          echo "=== TOP LEVEL ==="
+          ls lib/android_arm64/
+          echo "=== ALL STATIC LIBS ==="
+          find lib/android_arm64 -name "*.a" | sort
+          echo "=== ALL INCLUDES ==="
+          find lib/android_arm64 -name "*.h" | grep -i jpeg | head -20
+
       - name: Cache build dependencies
         uses: actions/cache@v4
         with:
@@ -82,6 +91,7 @@ jobs:
             -DWITH_INTERNATIONAL=OFF \
             -DWITH_PYTHON_INSTALL=OFF \
             -DWITH_INSTALL_PORTABLE=ON \
+            -DWITH_IMAGE_JPEG=OFF \
             -DCMAKE_BUILD_TYPE=Release
 
       - name: Build
