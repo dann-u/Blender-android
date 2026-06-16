@@ -1,0 +1,92 @@
+name: Build Blender Android
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/lib/android
+          df -h
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            cmake ninja-build \
+            python3 python3-pip \
+            git subversion \
+            build-essential \
+            libx11-dev libxxf86vm-dev \
+            libxcursor-dev libxi-dev \
+            libxrandr-dev libxinerama-dev \
+            libwayland-dev wayland-protocols \
+            zip unzip openjdk-17-jdk
+
+      - name: Setup Android NDK
+        run: |
+          wget -q https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
+          unzip -q android-ndk-r26d-linux.zip
+          echo "ANDROID_NDK=$PWD/android-ndk-r26d" >> $GITHUB_ENV
+
+      - name: Clone Blender 5.1
+        run: |
+          git clone --depth 1 \
+            --branch v5.1.2 \
+            https://projects.blender.org/blender/blender.git
+          cd blender
+          git submodule update --init --recursive
+
+      - name: Clone epai Android patches
+        run: |
+          git clone \
+            https://projects.blender.org/epai/Blender-android_arm64.git \
+            epai-reference
+
+      - name: Cache build dependencies
+        uses: actions/cache@v4
+        with:
+          path: blender/lib
+          key: blender-android-libs-${{ hashFiles('blender/build_files/**') }}
+
+      - name: Configure CMake
+        run: |
+          mkdir build-android
+          cd build-android
+          cmake ../blender \
+            -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM=android-26 \
+            -DWITH_VULKAN_BACKEND=ON \
+            -DWITH_OPENGL_ES=ON \
+            -DWITH_CYCLES=OFF \
+            -DWITH_AUDASPACE=OFF \
+            -DWITH_INTERNATIONAL=OFF \
+            -DWITH_PYTHON_INSTALL=OFF \
+            -DWITH_INSTALL_PORTABLE=ON \
+            -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: |
+          cd build-android
+          ninja -j4
+
+      - name: Package APK
+        run: |
+          cd build-android
+          zip -r blender-android-arm64.zip bin/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: blender-android-arm64
+          path: build-android/blender-android-arm64.zip
+          retention-days: 7
